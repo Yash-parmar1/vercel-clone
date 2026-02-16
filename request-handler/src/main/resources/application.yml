@@ -1,0 +1,21 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: request-handler
+  
+  redis:
+    host: localhost
+    port: 6379
+
+cloudflare:
+  r2:
+    endpoint: ${CLOUDFLARE_R2_ENDPOINT:${R2_ENDPOINT:}}
+    access-key: ${CLOUDFLARE_R2_ACCESS_KEY:${R2_ACCESS_KEY:}}
+    secret-key: ${CLOUDFLARE_R2_SECRET_KEY:${R2_SECRET_KEY:}}
+    bucket: ${CLOUDFLARE_R2_BUCKET:${R2_BUCKET:vercel-clone-storage}}
+
+logging:
+  level:
+    com.vercelclone: DEBUG
