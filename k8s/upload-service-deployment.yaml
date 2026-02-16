@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upload-service
+  namespace: vercel-clone
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: upload-service
+  template:
+    metadata:
+      labels:
+        app: upload-service
+    spec:
+      containers:
+      - name: upload-service
+        image: YOUR_DOCKERHUB/upload-service:v1
+        ports:
+        - containerPort: 8081
+        env:
+        - name: DOCKERHUB_REGISTRY
+          valueFrom:
+            configMapKeyRef:
+              name: registry-config
+              key: dockerhub-registry
+        - name: SPRING_REDIS_HOST
+          value: "redis"
+        - name: CLOUDFLARE_R2_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: endpoint
+        - name: CLOUDFLARE_R2_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: access-key
+        - name: CLOUDFLARE_R2_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: secret-key
+        - name: CLOUDFLARE_R2_BUCKET
+          valueFrom:
+            secretKeyRef:
+              name: r2-credentials
+              key: bucket
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: secret
+        - name: JWT_EXPIRATION
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secrets
+              key: expiration
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: upload-service
+  namespace: vercel-clone
+spec:
+  selector:
+    app: upload-service
+  ports:
+  - port: 80
+    targetPort: 8081
+  type: LoadBalancer
