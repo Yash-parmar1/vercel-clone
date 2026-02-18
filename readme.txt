@@ -40,3 +40,16 @@ docker push filoraxx/frontend:1.0
 .\deploy-k8s.bat
 
 
+kubectl port-forward -n vercel-clone svc/upload-service 8081:80
+
+kubectl port-forward -n vercel-clone svc/frontend 3000:80
+
+npx localtunnel --port 3000 2>&1
+
+
+
+kubectl delete namespace vercel-clone(to stop everything run the bat file again to start over)
+
+kubectl scale deployment --all --replicas=0 -n vercel-clone(to scale down the deployment keeping the config)
+
+kubectl scale deployment --all --replicas=1 -n vercel-clone(sto start again)
