@@ -5,8 +5,10 @@ import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.command.ExecCreateCmdResponse;
 import com.github.dockerjava.api.exception.DockerException;
 import com.github.dockerjava.api.model.*;
-import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +31,12 @@ public class BuildExecutor {
 
     @PostConstruct
     public void init() {
-        this.dockerClient = DockerClientBuilder.getInstance().build();
+        DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+        ApacheDockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+                .dockerHost(config.getDockerHost())
+                .sslConfig(config.getSSLConfig())
+                .build();
+        this.dockerClient = DockerClientImpl.getInstance(config, httpClient);
         this.executorService = Executors.newCachedThreadPool();
         log.info("Docker client initialized with security constraints");
     }

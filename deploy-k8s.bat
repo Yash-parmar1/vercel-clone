@@ -89,6 +89,7 @@ kubectl apply -f k8s/postgres-deployment.yaml
 kubectl apply -f k8s/upload-service-deployment.yaml
 kubectl apply -f k8s/build-service-deployment.yaml
 kubectl apply -f k8s/request-handler-deployment.yaml
+kubectl apply -f k8s/frontend-deployment.yaml
 kubectl apply -f k8s/hpa.yaml
 
 echo.
@@ -110,6 +111,7 @@ echo   kubectl logs -n vercel-clone deployment/build-service
 echo   kubectl logs -n vercel-clone deployment/request-handler
 echo.
 echo To access services:
+echo   kubectl port-forward -n vercel-clone svc/frontend 3000:80
 echo   kubectl port-forward -n vercel-clone svc/upload-service 8081:80
 echo   kubectl port-forward -n vercel-clone svc/request-handler 8083:80
 echo.

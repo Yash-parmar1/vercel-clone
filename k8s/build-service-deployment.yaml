@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: build-service
-        image: YOUR_DOCKERHUB/build-service:v1
+        image: filoraxx/build-service:1.0
         ports:
         - containerPort: 8082
         env:

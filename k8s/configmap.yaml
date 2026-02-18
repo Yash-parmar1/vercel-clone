@@ -4,7 +4,8 @@ metadata:
   name: registry-config
   namespace: vercel-clone
 data:
-  dockerhub-registry: "YOUR_DOCKERHUB"
-  upload-service-image: "YOUR_DOCKERHUB/upload-service:v1"
-  build-service-image: "YOUR_DOCKERHUB/build-service:v1"
-  request-handler-image: "YOUR_DOCKERHUB/request-handler:v1"
+  dockerhub-registry: "filoraxx"
+  upload-service-image: "filoraxx/upload-service:1.0"
+  build-service-image: "filoraxx/build-service:1.0"
+  request-handler-image: "filoraxx/request-handler:1.0"
+  frontend-image: "filoraxx/frontend:1.0"

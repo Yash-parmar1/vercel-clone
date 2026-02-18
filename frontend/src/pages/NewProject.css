@@ -1,0 +1,64 @@
+.new-project-page {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  margin-bottom: 24px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.btn-back:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.new-project-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+}
+
+.new-project-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.new-project-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.form-checkbox-group {
+  margin-bottom: 24px;
+}
+
+.form-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.form-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}

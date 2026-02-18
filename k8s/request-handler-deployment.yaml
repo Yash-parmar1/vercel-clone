@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: request-handler
-        image: YOUR_DOCKERHUB/request-handler:v1
+        image: filoraxx/request-handler:1.0
         ports:
         - containerPort: 8083
         env:

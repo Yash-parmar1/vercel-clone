@@ -1,16 +1,18 @@
-FROM eclipse-temurin:17-jdk-alpine AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-# Copy parent POM and common-lib first
+# Copy parent POM and all modules (Maven needs all declared modules to resolve parent POM)
 COPY pom.xml ./
 COPY common-lib ./common-lib
 COPY upload-service ./upload-service
+COPY build-service ./build-service
+COPY request-handler ./request-handler
 
 # Build
 RUN apk add --no-cache maven
 RUN mvn clean package -pl upload-service -am -DskipTests
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Copy JAR
