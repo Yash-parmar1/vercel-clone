@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class DeployResponse {
-    private String id;
+    private String deploymentId;
     private String status;
-    private String url;
+    private String deploymentUrl;
 }

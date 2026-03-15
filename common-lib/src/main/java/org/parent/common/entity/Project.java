@@ -1,7 +1,9 @@
 package org.parent.common.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import jakarta.persistence.*;
@@ -12,6 +14,7 @@ import java.util.Set;
 @Entity
 @Table(name = "projects")
 @Data
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 public class Project {
@@ -33,10 +36,12 @@ public class Project {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
+    @JsonIgnoreProperties({"projects", "deployments", "password", "roles", "hibernateLazyInitializer", "handler"})
     private User owner;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
+    @JsonIgnoreProperties({"project", "user", "hibernateLazyInitializer", "handler"})
     private Set<Deployment> deployments = new HashSet<>();
 
     @Column(name = "custom_domain")

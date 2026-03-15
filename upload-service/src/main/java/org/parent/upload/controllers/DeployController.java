@@ -3,12 +3,15 @@ package org.parent.upload.controllers;
 import org.parent.upload.dto.DeployRequest;
 import org.parent.upload.dto.DeployResponse;
 import org.parent.upload.service.DeploymentService;
+import org.parent.common.entity.Deployment;
+import org.parent.common.repository.JpaDeploymentRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,6 +21,9 @@ public class DeployController {
 
     @Autowired
     private DeploymentService deploymentService;
+
+    @Autowired
+    private JpaDeploymentRepository jpaDeploymentRepository;
 
     @PostMapping("/deploy")
     public ResponseEntity<?> deploy(@RequestBody DeployRequest request, Authentication auth) {
@@ -39,12 +45,35 @@ public class DeployController {
 
             return ResponseEntity.ok(new DeployResponse(
                     deploymentId,
-                    "queued",
-                    "https://" + deploymentId + ".vercel-clone.com"
+                    "QUEUED",
+                    "http://" + deploymentId + ".vercel-clone.com"
             ));
         } catch (Exception e) {
             log.error("Deploy request failed: {}", e.getMessage());
             return ResponseEntity.badRequest().body("Deployment failed: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/deployments/{deploymentId}")
+    public ResponseEntity<?> getDeployment(@PathVariable String deploymentId, Authentication auth) {
+        try {
+            Deployment deployment = jpaDeploymentRepository.findById(deploymentId)
+                    .orElseThrow(() -> new RuntimeException("Deployment not found"));
+            return ResponseEntity.ok(deployment);
+        } catch (Exception e) {
+            log.error("Failed to get deployment: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to get deployment: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/deployments/project/{projectId}")
+    public ResponseEntity<?> getDeploymentsByProject(@PathVariable String projectId, Authentication auth) {
+        try {
+            List<Deployment> deployments = jpaDeploymentRepository.findByProjectId(projectId);
+            return ResponseEntity.ok(deployments);
+        } catch (Exception e) {
+            log.error("Failed to list deployments: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to list deployments: " + e.getMessage());
         }
     }
 

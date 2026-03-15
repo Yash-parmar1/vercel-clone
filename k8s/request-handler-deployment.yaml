@@ -16,6 +16,7 @@ spec:
       containers:
       - name: request-handler
         image: filoraxx/request-handler:1.0
+        imagePullPolicy: Always
         ports:
         - containerPort: 8083
         env:

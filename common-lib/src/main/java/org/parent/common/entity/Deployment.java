@@ -1,6 +1,9 @@
 package org.parent.common.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.parent.common.model.DeploymentStatus;
 
 import jakarta.persistence.*;
@@ -8,18 +11,22 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Data
+@EqualsAndHashCode(of = "id")
 @Entity
 @Table(name = "deployments")
 public class Deployment {
     @Id
+    @JsonProperty("deploymentId")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
+    @JsonIgnoreProperties({"deployments", "owner", "hibernateLazyInitializer", "handler"})
     private Project project;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"projects", "deployments", "password", "roles", "hibernateLazyInitializer", "handler"})
     private User user;
 
     @Enumerated(EnumType.STRING)

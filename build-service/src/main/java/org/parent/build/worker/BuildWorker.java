@@ -1,5 +1,7 @@
 package org.parent.build.worker;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.parent.build.service.BuildExecutor;
 import org.parent.build.service.SecurityValidator;
 import org.parent.common.service.QueueService;
@@ -35,6 +37,8 @@ public class BuildWorker {
     @Autowired
     private SecurityValidator securityValidator;
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     @PostConstruct
     public void startWorker() {
         new Thread(() -> {
@@ -57,7 +61,13 @@ public class BuildWorker {
     }
 
     private void processBuild(String deploymentId) {
-        String tempDir = "/tmp/build-" + deploymentId;
+        // Use the OS temp directory so the path is valid on both Windows and Linux.
+        // On Windows, hardcoding /tmp does not exist as a native path, causing Docker
+        // bind mounts to silently mount as empty directories inside the container.
+        String tempBase = System.getProperty("java.io.tmpdir").replace("\\", "/");
+        if (!tempBase.endsWith("/")) tempBase += "/";
+        String tempDir = tempBase + "build-" + deploymentId;
+
         long startTime = System.currentTimeMillis();
 
         try {
@@ -66,7 +76,7 @@ public class BuildWorker {
                     .orElseThrow(() -> new RuntimeException("Deployment not found: " + deploymentId));
 
             // 1. Download from R2
-            log.info("[{}] ⬇️  Downloading source code...", deploymentId);
+            log.info("[{}] ⬇️  Downloading source code to {}...", deploymentId, tempDir);
             r2Service.downloadDirectory(deployment.getS3SourcePath(), tempDir);
 
             // 2. Mark BUILDING
@@ -77,7 +87,7 @@ public class BuildWorker {
             log.info("[{}] 🔒 Running security validation...", deploymentId);
             securityValidator.validateProject(tempDir);
 
-            // 4. Detect framework
+            // 4. Detect framework from actual project files
             String framework = detectFramework(tempDir);
             log.info("[{}] 🎯 Detected framework: {}", deploymentId, framework);
 
@@ -87,7 +97,7 @@ public class BuildWorker {
 
             // 6. Upload built files
             String outputDir = getOutputDirectory(tempDir, framework);
-            log.info("[{}] ⬆️  Uploading built files...", deploymentId);
+            log.info("[{}] ⬆️  Uploading built files from: {}", deploymentId, outputDir);
             String s3BuildPath = "built/" + deploymentId;
             r2Service.uploadDirectory(outputDir, s3BuildPath);
 
@@ -103,48 +113,89 @@ public class BuildWorker {
 
         } catch (SecurityException e) {
             log.error("[{}] 🚫 Security validation failed: {}", deploymentId, e.getMessage());
-            deploymentRepository.findById(deploymentId).ifPresent(d -> {
-                d.setStatus(DeploymentStatus.BUILD_FAILED);
-                d.setCompletedAt(Instant.now());
-                d.setErrorMessage(e.getMessage());
-                d.setBuildDurationSeconds((System.currentTimeMillis() - startTime) / 1000);
-                deploymentRepository.save(d);
-            });
+            markFailed(deploymentId, e.getMessage(), startTime);
         } catch (Exception e) {
             log.error("[{}] ❌ Build failed: {}", deploymentId, e.getMessage(), e);
-            deploymentRepository.findById(deploymentId).ifPresent(d -> {
-                d.setStatus(DeploymentStatus.BUILD_FAILED);
-                d.setCompletedAt(Instant.now());
-                d.setErrorMessage(e.getMessage());
-                d.setBuildDurationSeconds((System.currentTimeMillis() - startTime) / 1000);
-                deploymentRepository.save(d);
-            });
+            markFailed(deploymentId, e.getMessage(), startTime);
         } finally {
-            // Cleanup
             try {
                 FileUtils.deleteDirectory(new File(tempDir));
             } catch (Exception e) {
-                log.warn("[{}] Failed to cleanup temp directory", deploymentId);
+                log.warn("[{}] Failed to cleanup temp directory: {}", deploymentId, tempDir);
             }
         }
     }
 
+    /**
+     * Detect the framework by inspecting actual project files.
+     *
+     * Detection order:
+     * 1. requirements.txt / setup.py / pyproject.toml  → python
+     * 2. package.json dependencies                      → next, vite, angular, vue, react (priority order)
+     * 3. package.json present but no known framework    → node (generic)
+     * 4. index.html only                                → static
+     */
     private String detectFramework(String path) {
+        // Python
+        if (new File(path, "requirements.txt").exists() ||
+            new File(path, "setup.py").exists() ||
+            new File(path, "pyproject.toml").exists()) {
+            return "python";
+        }
+
+        // Node-based: parse package.json dependencies
         File packageJson = new File(path, "package.json");
         if (packageJson.exists()) {
-            // TODO: Parse package.json to detect React, Next.js, Vue, etc.
-            return "react";
+            try {
+                JsonNode root    = objectMapper.readTree(packageJson);
+                JsonNode deps    = root.path("dependencies");
+                JsonNode devDeps = root.path("devDependencies");
+
+                // Next must be checked before React — Next projects also have "react" in deps
+                if (hasKey(deps, "next")           || hasKey(devDeps, "next"))           return "next";
+                if (hasKey(deps, "vite")           || hasKey(devDeps, "vite"))           return "vite";
+                if (hasKey(deps, "@angular/core")  || hasKey(devDeps, "@angular/core"))  return "angular";
+                if (hasKey(deps, "vue")            || hasKey(devDeps, "vue"))            return "vue";
+                if (hasKey(deps, "react")          || hasKey(devDeps, "react"))          return "react";
+
+                return "node"; // has package.json but no recognised framework
+            } catch (Exception e) {
+                log.warn("[detectFramework] Failed to parse package.json at {}: {}", path, e.getMessage());
+                return "node";
+            }
         }
-        return "static";
+
+        // Static site fallback
+        if (new File(path, "index.html").exists()) {
+            return "static";
+        }
+
+        log.warn("[detectFramework] Could not detect framework in {}, defaulting to node", path);
+        return "node";
+    }
+
+    private boolean hasKey(JsonNode node, String key) {
+        return node != null && !node.isMissingNode() && node.has(key);
     }
 
     private String getOutputDirectory(String basePath, String framework) {
         return switch (framework) {
-            case "react", "vue" -> basePath + "/dist";
-            case "vite" -> basePath + "/dist";
-            case "next" -> basePath + "/.next/standalone";
-            case "angular" -> basePath + "/dist";
-            default -> basePath;
+            case "next"                     -> basePath + "/.next/standalone";
+            case "angular"                  -> basePath + "/dist";
+            case "react", "vue", "vite"     -> basePath + "/dist";
+            case "python"                   -> basePath + "/dist";
+            case "static"                   -> basePath;
+            default                         -> basePath + "/dist";
         };
+    }
+
+    private void markFailed(String deploymentId, String errorMessage, long startTime) {
+        deploymentRepository.findById(deploymentId).ifPresent(d -> {
+            d.setStatus(DeploymentStatus.BUILD_FAILED);
+            d.setCompletedAt(Instant.now());
+            d.setErrorMessage(errorMessage);
+            d.setBuildDurationSeconds((System.currentTimeMillis() - startTime) / 1000);
+            deploymentRepository.save(d);
+        });
     }
 }

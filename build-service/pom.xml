@@ -11,7 +11,6 @@
 
     <artifactId>build-service</artifactId>
 
-
     <dependencies>
         <!-- Import common-lib -->
         <dependency>
@@ -26,15 +25,25 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Docker Java Client -->
+        <!-- Docker Java Client - exclude httpclient5 transport so zerodep wins -->
         <dependency>
             <groupId>com.github.docker-java</groupId>
             <artifactId>docker-java</artifactId>
             <version>3.3.4</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.docker-java</groupId>
+                    <artifactId>docker-java-transport-httpclient5</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
+        <!-- ZeroDep transport: supports Windows named pipes, Unix sockets, and TCP.
+             httpclient5 transport does NOT support Windows named pipes and silently
+             falls back to localhost:2375, causing "Connection refused" errors. -->
         <dependency>
             <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-transport-httpclient5</artifactId>
+            <artifactId>docker-java-transport-zerodep</artifactId>
             <version>3.3.4</version>
         </dependency>
 
@@ -60,8 +69,6 @@
             </plugin>
         </plugins>
     </build>
-
-
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

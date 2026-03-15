@@ -16,6 +16,7 @@ spec:
       containers:
       - name: upload-service
         image: filoraxx/upload-service:1.0
+        imagePullPolicy: Always
         ports:
         - containerPort: 8081
         env:

@@ -45,9 +45,15 @@ public class UserService {
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // Add default USER role
+        // Add default USER role (auto-create if missing)
         Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Default role not found"));
+                .orElseGet(() -> {
+                    Role role = new Role();
+                    role.setName("ROLE_USER");
+                    role.setDescription("Default user role");
+                    log.info("Auto-creating missing ROLE_USER");
+                    return roleRepository.save(role);
+                });
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         user.setRoles(roles);

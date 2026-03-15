@@ -16,9 +16,12 @@ spec:
       containers:
       - name: build-service
         image: filoraxx/build-service:1.0
+        imagePullPolicy: Always
         ports:
         - containerPort: 8082
         env:
+        - name: DOCKER_HOST
+          value: "unix:///var/run/docker.sock"
         - name: DOCKERHUB_REGISTRY
           valueFrom:
             configMapKeyRef:
@@ -59,6 +62,8 @@ spec:
         volumeMounts:
         - name: docker-sock
           mountPath: /var/run/docker.sock
+        - name: build-tmp
+          mountPath: /tmp
         resources:
           requests:
             memory: "1Gi"
@@ -70,3 +75,8 @@ spec:
       - name: docker-sock
         hostPath:
           path: /var/run/docker.sock
+          type: Socket            # ensures it's treated as a socket file, not a directory
+      - name: build-tmp
+        hostPath:
+          path: /tmp
+          type: Directory

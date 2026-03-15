@@ -27,17 +27,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String token = extractTokenFromRequest(request);
+            log.warn("JWT Filter - URI: {}, Token present: {}", request.getRequestURI(), token != null);
 
-            if (token != null && tokenProvider.validateToken(token)) {
-                String userId = tokenProvider.getUserIdFromToken(token);
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userId, null, new ArrayList<>()
-                );
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+            if (token != null) {
+                boolean valid = tokenProvider.validateToken(token);
+                log.warn("JWT Filter - Token valid: {}", valid);
+                if (valid) {
+                    String userId = tokenProvider.getUserIdFromToken(token);
+                    log.warn("JWT Filter - UserId from token: {}", userId);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            userId, null, new ArrayList<>()
+                    );
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                    log.warn("JWT Filter - Authentication set in SecurityContext");
+                }
             }
         } catch (Exception e) {
-            log.error("JWT authentication failed: {}", e.getMessage());
+            log.error("JWT authentication failed: {}", e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);

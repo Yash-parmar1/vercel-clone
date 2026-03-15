@@ -4,10 +4,10 @@ server:
 spring:
   application:
     name: build-service
-  
+
   redis:
-    host: localhost
-    port: 6379
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/${POSTGRES_DB:vercel_clone}}
@@ -28,6 +28,12 @@ cloudflare:
 jwt:
   secret: ${JWT_SECRET:your-super-secret-key-change-this-in-production-at-least-256-bits-long}
   expiration: ${JWT_EXPIRATION:86400000}
+
+docker:
+  # In K8s: set DOCKER_HOST=unix:///var/run/docker.sock via deployment env vars
+  # Locally on Windows: set DOCKER_HOST=npipe:////./pipe/docker_engine
+  # Locally on Linux/Mac: leave unset, defaults to unix socket below
+  host: ${DOCKER_HOST:unix:///var/run/docker.sock}
 
 logging:
   level:
